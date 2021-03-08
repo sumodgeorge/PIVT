@@ -1,0 +1,20 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: fabricnetworks.hyperledger.org
+spec:
+  # are we allowed to use Hyperledger namespace?
+  group: hyperledger.org
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+  scope: Namespaced
+  names:
+    plural: fabricnetworks
+    singular: fabricnetwork
+    kind: FabricNetwork
+    shortNames:
+    - fn  
+  preserveUnknownFields: true
+  validation: # schema and validation will be nice to have but not a priority
