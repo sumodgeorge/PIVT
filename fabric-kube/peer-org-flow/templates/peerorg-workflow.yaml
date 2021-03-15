@@ -39,6 +39,8 @@ spec:
     secret:
       # only use the first orderer
       secretName: hlf-orderer--{{ $ordererOrg.Name | lower }}-tlsca
+  - name: work
+    emptyDir: {}
 
 {{- range $i, $org := .Values.PeerOrgs }}
   - name: org-{{ $org.Name | lower }}-msp
@@ -466,8 +468,6 @@ spec:
       image: hyperledger/fabric-tools:{{ $.Values.hyperledgerVersion }}
       command: [bash]
       source: |
-          mkdir -p /work && 
-            
           configtxgen -printOrg {{ $orgName }}MSP -configPath=/hlf_config/ > /work/new_org.json && 
           echo '-- printed new org {{ $orgName }}MSP to new_org.json' && 
             
@@ -498,6 +498,8 @@ spec:
           name: hlf-configtx
         - mountPath: /hlf-scripts
           name: hlf-scripts
+        - name: work
+          mountPath: /work
       
       env:
         - name: FABRIC_LOGGING_SPEC
@@ -542,6 +544,8 @@ spec:
       volumeMounts:
         - mountPath: /etc/hyperledger/fabric/msp/
           name: orderer-{{ $ordererOrg.Name | lower }}-admin-msp
+        - name: work
+          mountPath: /work
       env:
         - name: CORE_PEER_LOCALMSPID
           value: {{ $ordererOrg.Name }}MSP
@@ -774,8 +778,6 @@ spec:
       image: hyperledger/fabric-tools:{{ $.Values.hyperledgerVersion }}
       command: [bash]
       source: |
-        mkdir -p /work &&
-                             
         configtxgen -printOrg {{ $orgName }}MSP -configPath=/hlf_config/ > /work/new_org.json &&
         echo '-- printed new new_org.json' &&
 
@@ -806,7 +808,9 @@ spec:
           name: hlf-configtx
         - mountPath: /hlf-scripts
           name: hlf-scripts
-      
+        - name: work
+          mountPath: /work
+
       env:
         - name: FABRIC_LOGGING_SPEC
           value: {{ $.Values.logLevel }}
@@ -851,8 +855,6 @@ spec:
       image: hyperledger/fabric-tools:{{ $.Values.hyperledgerVersion }}
       command: [bash]
       source: |
-          mkdir -p /work && 
-          
           peer channel fetch config /work/config_block.pb -c {{ $channel.name }} -o {{ $ordererAddress }}:7050 \
               {{- if $.Values.tlsEnabled }}
                   --tls --cafile /hlf_config/orderer-tlsca/tlscacert.pem \
@@ -885,6 +887,8 @@ spec:
           name: orderer-{{ $ordererOrg.Name | lower }}-admin-msp
         - mountPath: /etc/hyperledger/fabric/org-admin-msp/
           name: peer-{{ $orgName | lower }}-admin-msp
+        - name: work
+          mountPath: /work
 
       env:
         - name: FABRIC_LOGGING_SPEC
