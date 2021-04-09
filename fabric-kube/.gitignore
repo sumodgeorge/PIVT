@@ -2,5 +2,6 @@ crypto-config/
 channel-artifacts/
 wtf.yaml
 tmp/*
+tmp2/*
 **/hostAliases.yaml
 **/externalHostAliases.yaml
