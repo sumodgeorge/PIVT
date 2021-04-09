@@ -187,9 +187,15 @@ spec:
     steps:
     - - name: check-channel-exists
         template: check-channel-exists--{{ $channel.name }}
+    - - name: check-channel-exists-output
+        template: print-output
+        arguments:
+          artifacts:
+          - name: result
+            from: "{{ "{{" }}steps.check-channel-exists.outputs.artifacts.result{{ "}}" }}"
     - - name: channel-orgs
         template: channel-orgs--{{ $channel.name }}
-        when: "{{ "{{" }}steps.check-channel-exists.outputs.result{{ "}}" }}"
+        when: "{{ "{{" }}steps.check-channel-exists-output.outputs.result{{ "}}" }}"
 {{- end }} {{- /* if channel included */ -}}
 {{- end }} {{- /* channels */ -}}
 {{- end }} {{- /* if channel.enabled */ -}}{{""}}
@@ -204,9 +210,15 @@ spec:
     steps:
     - - name: check-org-in-consortium
         template: check-org-in-consortium--{{ $consortium }}--{{ $orgName }}
+    - - name: check-org-in-consortium-output
+        template: print-output
+        arguments:
+          artifacts:
+          - name: result
+            from: "{{ "{{" }}steps.check-org-in-consortium.outputs.artifacts.result{{ "}}" }}"
     - - name: add-org-to-consortium
         template: add-org-to-consortium--{{ $consortium }}--{{ $orgName }}
-        when: "!{{ "{{" }}steps.check-org-in-consortium.outputs.result{{ "}}" }}"
+        when: "!{{ "{{" }}steps.check-org-in-consortium-output.outputs.result{{ "}}" }}"
 {{- end }} {{- /* consortium.orgs */ -}}
 {{- end }} {{- /* if consortium included */ -}}
 {{- end }} {{- /* consortiums */ -}}
@@ -235,9 +247,15 @@ spec:
     steps:
     - - name: check-org-in-channel
         template: check-org-in-channel--{{ $channel.name }}--{{ $orgName }}
+    - - name: check-org-in-channel-output
+        template: print-output
+        arguments:
+          artifacts:
+          - name: result
+            from: "{{ "{{" }}steps.check-org-in-channel.outputs.artifacts.result{{ "}}" }}"
     - - name: add-org-to-channel
         template: add-org-to-channel--{{ $channel.name }}--{{ $orgName }}
-        when: "!{{ "{{" }}steps.check-org-in-channel.outputs.result{{ "}}" }}"
+        when: "!{{ "{{" }}steps.check-org-in-channel-output.outputs.result{{ "}}" }}"
 {{- end }} {{- /* channel.orgs */ -}}
 {{- end }} {{- /* if channel included */ -}}
 {{- end }} {{- /* channels */ -}}
@@ -366,6 +384,19 @@ spec:
 {{- end }} {{- /* channels */ -}}
 {{- end }} {{- /* if channel.enabled */ -}}{{""}}
 
+# helper template to print given artifact
+# see https://github.com/argoproj/argo-workflows/issues/5408
+  - name: print-output
+    inputs:
+      artifacts:
+      - name: result
+        path: /work/result
+    script:
+      image: alpine:3.6
+      command: [sh]
+      source: |
+        cat /work/result
+
 
 # leaf check-org-in-consortium templates
 {{- if $.Values.flow.consortium.enabled }}
@@ -381,38 +412,41 @@ spec:
     # consortium: {{ $consortium }}
     # org: {{ $orgName }}
     inputs:
+    outputs:
+      artifacts:
+      - name: result
+        path: /work/result
     retryStrategy:
       limit: {{ $.Values.retryCount }}
     script:
       image: hyperledger/fabric-tools:{{ $.Values.hyperledgerVersion }}
       command: [bash]
-      # we are echoing logs to stderr by >&2, since to stdout only true|false should be printed
       source: |
-          mkdir -p /work && 
-          
           peer channel fetch config /work/config_block.pb -c {{ $.Values.network.systemChannelID }} -o {{ $ordererAddress }}:7050 \
               {{- if $.Values.tlsEnabled }}
                   --tls --cafile /hlf_config/orderer-tlsca/tlscacert.pem \
               {{- end }}
-          && >&2 echo '-- fetched config block from orderer system channel {{ $.Values.network.systemChannelID }}' &&
+          && echo '-- fetched config block from orderer system channel {{ $.Values.network.systemChannelID }}' &&
           
           configtxlator proto_decode --input /work/config_block.pb --type common.Block \
                 | jq .data.data[0].payload.data.config > /work/config.json &&
-          echo >&2 '-- trimmed envelope from config block and converted to json' &&
+          echo '-- trimmed envelope from config block and converted to json' &&
 
           consortium=$(jq  '.channel_group.groups.Consortiums.groups."{{ $consortium }}"' /work/config.json) &&
           if test "$consortium" == "null"; then
-            echo >&2 '-- failed to parse consortium {{ $consortium }} from config block, does it exist?'
+            echo '-- failed to parse consortium {{ $consortium }} from config block, does it exist?'
             exit 1
           fi
 
           org=$(echo $consortium | jq '.groups.{{ $orgName }}MSP') &&
           if test "$org" == "null"; then
-            echo >&2 '-- peer organization {{ $orgName }} does not exist in the consortium {{ $consortium }}'
+            echo '-- peer organization {{ $orgName }} does not exist in the consortium {{ $consortium }}'
             echo false
+            echo false > /work/result
           else
-            echo >&2 '-- peer organization {{ $orgName }} exists in the consortium {{ $consortium }}'
+            echo '-- peer organization {{ $orgName }} exists in the consortium {{ $consortium }}'
             echo true
+            echo true > /work/result
           fi
 
       volumeMounts:
@@ -424,6 +458,8 @@ spec:
           name: orderer-{{ $ordererOrg.Name | lower }}-admin-msp
         - mountPath: /hlf-scripts
           name: hlf-scripts
+        - name: work
+          mountPath: /work
       
       env:
         - name: FABRIC_LOGGING_SPEC
@@ -634,33 +670,37 @@ spec:
   - name: check-channel-exists--{{ $channel.name }}
     # channel: {{ $channel }}
     inputs:
+    outputs:
+      artifacts:
+      - name: result
+        path: /work/result
     retryStrategy:
       limit: {{ $.Values.retryCount }}
     script:
       # image: hyperledger/fabric-tools:{{ $.Values.hyperledgerVersion }}
       image: raft/hl-fabric-tools:1.4.3
       command: [bash]
-      # we are echoing logs to stderr by >&2, since to stdout only true|false should be printed
       source: |
-          if >&2 peer channel checkexists --channelID {{ $channel.name }} -o {{ $ordererAddress }}:7050 \
+          if peer channel checkexists --channelID {{ $channel.name }} -o {{ $ordererAddress }}:7050 \
               {{- if $.Values.tlsEnabled }}
                   --tls --cafile /hlf_config/orderer-tlsca/tlscacert.pem \
               {{- end }}
           ; then 
-            >&2 echo '-- channel {{ $channel.name }} exists' 
+            echo '-- channel {{ $channel.name }} exists' 
             echo true
+            echo true > /work/result
             exit 0
           else
             result=$?
-            >&2 echo "-- result is: $result"
+            echo "-- result is: $result"
             if test $result -ne 99; then
-              >&2 echo "-- result is not 99, exiting with $result"
+              echo "-- result is not 99, exiting with $result"
               exit $result
             fi
           fi
 
           echo false
-
+          echo false > /work/result
 
       volumeMounts:
         - mountPath: /hlf_config/orderer-tlsca
@@ -671,6 +711,8 @@ spec:
           name: orderer-{{ $ordererOrg.Name | lower }}-admin-msp
         - mountPath: /hlf-scripts
           name: hlf-scripts
+        - name: work
+          mountPath: /work
       
       env:
         - name: FABRIC_LOGGING_SPEC
@@ -702,30 +744,33 @@ spec:
     # channel: {{ $channel }}
     # org: {{ $orgName }}
     inputs:
+    outputs:
+      artifacts:
+      - name: result
+        path: /work/result
     retryStrategy:
       limit: {{ $.Values.retryCount }}
     script:
       image: hyperledger/fabric-tools:{{ $.Values.hyperledgerVersion }}
       command: [bash]
-      # we are echoing logs to stderr by >&2, since to stdout only true|false should be printed
       source: |
-          mkdir -p /work && 
-          
           peer channel fetch config /work/config_block.pb -c {{ $channel.name }} -o {{ $ordererAddress }}:7050 \
               {{- if $.Values.tlsEnabled }}
                   --tls --cafile /hlf_config/orderer-tlsca/tlscacert.pem \
               {{- end }}
-          && >&2 echo '-- fetched config block for channel {{ $channel.name }}' &&
+          && echo '-- fetched config block for channel {{ $channel.name }}' &&
           
           configtxlator proto_decode --input /work/config_block.pb --type common.Block \
                 | jq .data.data[0].payload.data.config > /work/config.json &&
-          echo >&2 '-- trimmed envelope from config block and converted to json' &&
+          echo '-- trimmed envelope from config block and converted to json' &&
 
           application=$(jq  '.channel_group.groups.Application.groups."{{ $orgName }}MSP"' /work/config.json) &&
           if test "$application" == "null"; then
             echo false
+            echo false > /work/result
           else 
             echo true
+            echo true > /work/result
           fi          
 
       volumeMounts:
@@ -735,6 +780,8 @@ spec:
           name: orderer-{{ $ordererOrg.Name | lower }}-{{ $ordererHost | lower }}-tls
         - mountPath: /etc/hyperledger/fabric/msp/
           name: orderer-{{ $ordererOrg.Name | lower }}-admin-msp
+        - name: work
+          mountPath: /work
       
       env:
         - name: FABRIC_LOGGING_SPEC
