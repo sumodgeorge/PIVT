@@ -44,6 +44,9 @@ This repository contains a couple of Helm charts to:
 based on this [patch](https://github.com/hyperledger/fabric/pull/345), **use at your own risk!**
 If you don't want this behaviour, you can use [release/0.7](https://github.com/APGGroeiFabriek/PIVT/tree/release/0.7) branch.
 
+**Consider** using [Fabric Operator](https://github.com/raftAtGit/hl-fabric-operator), 
+which is a wrapper around PIVT Helm charts and makes running and operating Hyperledger Fabric in Kubernetes even more easier.
+
 ## [Who made this?](#who-made-this)
 This work is a result of collaborative effort between [APG](https://www.apg.nl/en) and 
 [Accenture NL](https://www.accenture.com/nl-en). 
