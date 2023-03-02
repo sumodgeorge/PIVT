@@ -52,8 +52,8 @@ peer:
     size: 16Gi
   docker:
     dind: 
-      # use a side car docker in docker container?
-      enabled: false
+      # use a side car docker in docker container? required for Kubernetes versions 1.19+
+      enabled: true
       # dind docker image
       image: docker:19.03.8-dind
       persistence:
