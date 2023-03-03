@@ -136,8 +136,8 @@ spec:
 {{- if or $vars.firstStep (not $.Values.flow.install.parallel) }}
     - 
 {{- end }}
-      - name: maybe-install-chaincode--{{ $chaincode.name }}-{{ $version | replace "." "-" }}--{{ $org.Name }}--{{ $peer }}
-        template: maybe-install-chaincode--{{ $chaincode.name }}-{{ $version | replace "." "-" }}--{{ $org.Name }}--{{ $peer }}
+      - name: maybe-install-chaincode--{{ $chaincode.name }}-{{ $version | replace "." "-" }}--{{ $org.Name | lower }}--{{ $peer }}
+        template: maybe-install-chaincode--{{ $chaincode.name }}-{{ $version | replace "." "-" }}--{{ $org.Name | lower }}--{{ $peer }}
 {{- $_ := set $vars "firstStep" false }}
 {{- end }} {{- /* peerIndex */ -}} 
 {{- end }} {{- /* if org */ -}} 
@@ -167,8 +167,8 @@ spec:
 {{- if or $vars.firstStep (not $.Values.flow.instantiate.parallel) }}
     - 
 {{- end }}
-      - name: maybe-instantiate-or-upgrade-chaincode--{{ $chaincode.name }}-{{ $version | replace "." "-" }}--{{ $channel.name }}--{{ $org.Name }}--{{ $peer }}
-        template: maybe-instantiate-or-upgrade-chaincode--{{ $chaincode.name }}-{{ $version | replace "." "-" }}--{{ $channel.name  }}--{{ $org.Name }}--{{ $peer }}
+      - name: maybe-instantiate-or-upgrade-chaincode--{{ $chaincode.name }}-{{ $version | replace "." "-" }}--{{ $channel.name }}--{{ $org.Name | lower }}--{{ $peer }}
+        template: maybe-instantiate-or-upgrade-chaincode--{{ $chaincode.name }}-{{ $version | replace "." "-" }}--{{ $channel.name  }}--{{ $org.Name | lower }}--{{ $peer }}
 
 {{- $_ := set $vars "firstStep" false }}
 {{- end }} {{- /* if org */ -}} 
@@ -198,8 +198,8 @@ spec:
 {{- if or $vars.firstStep (not $.Values.flow.invoke.parallel) }}
     - 
 {{- end }}
-      - name: invoke-chaincode--{{ $chaincode.name }}--{{ $channel.name }}--{{ $org.Name }}--{{ $peer }}
-        template: invoke-chaincode--{{ $chaincode.name }}--{{ $channel.name }}--{{ $org.Name }}--{{ $peer }}
+      - name: invoke-chaincode--{{ $chaincode.name }}--{{ $channel.name }}--{{ $org.Name | lower }}--{{ $peer }}
+        template: invoke-chaincode--{{ $chaincode.name }}--{{ $channel.name }}--{{ $org.Name | lower }}--{{ $peer }}
 
 {{- $_ := set $vars "firstStep" false }}
 {{- end }} {{- /* peerIndex */ -}} 
@@ -225,7 +225,7 @@ spec:
 {{- range $peerIndex := until ($org.Template.Count | int) }}
 {{- $peer := (printf "peer%s" ($peerIndex | toString)) }}
 
-  - name: maybe-install-chaincode--{{ $chaincode.name }}-{{ $version | replace "." "-" }}--{{ $org.Name }}--{{ $peer }}
+  - name: maybe-install-chaincode--{{ $chaincode.name }}-{{ $version | replace "." "-" }}--{{ $org.Name | lower }}--{{ $peer }}
     # chaincode: {{ $chaincode.name }}
     # version: {{ $version }}
     # org: {{ $org.Name }}
@@ -321,7 +321,7 @@ spec:
 
 {{- $peer := "peer0" }}
 
-  - name: maybe-instantiate-or-upgrade-chaincode--{{ $chaincode.name }}-{{ $version | replace "." "-" }}--{{ $channel.name }}--{{ $org.Name }}--{{ $peer }}
+  - name: maybe-instantiate-or-upgrade-chaincode--{{ $chaincode.name }}-{{ $version | replace "." "-" }}--{{ $channel.name }}--{{ $org.Name | lower }}--{{ $peer }}
     # chaincode: {{ $chaincode.name }}
     # version: {{ $version }}
     # channel: {{ $channel.name }}
@@ -427,7 +427,7 @@ spec:
 {{- range $peerIndex := until ($org.Template.Count | int) }}
 {{- $peer := (printf "peer%s" ($peerIndex | toString)) }}
 
-  - name: invoke-chaincode--{{ $chaincode.name }}--{{ $channel.name }}--{{ $org.Name }}--{{ $peer }}
+  - name: invoke-chaincode--{{ $chaincode.name }}--{{ $channel.name }}--{{ $org.Name | lower }}--{{ $peer }}
     # chaincode: {{ $chaincode.name }}
     # channel: {{ $channel.name }}
     # org: {{ $org.Name }}

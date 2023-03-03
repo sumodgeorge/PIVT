@@ -63,9 +63,9 @@ Docker Compose files and Bash scripts.
 This work is licensed under the same license with HL Fabric; [Apache License 2.0](LICENSE).
 
 ## [Requirements](#requirements)
-* A running Kubernetes cluster, Minikube should also work, but not tested
+* A running Kubernetes cluster (tested in AKS and Kind)
 * [HL Fabric binaries](https://hyperledger-fabric.readthedocs.io/en/release-1.4/install.html)
-* [Helm](https://github.com/helm/helm/releases/tag/v2.16.0), 2.16 or newer 2.xx versions
+* [Helm](https://github.com/helm/helm/releases/tag/v3.11.1), 3.x or newer
 * [jq](https://stedolan.github.io/jq/download/) 1.5+ and [yq](https://pypi.org/project/yq/) 2.6+
 * [Argo](https://github.com/argoproj/argo), both CLI and Controller 2.4.0+
 * [Minio](https://github.com/argoproj/argo/blob/master/docs/configure-artifact-repository.md), only required for backup/restore and new-peer-org flows
@@ -109,7 +109,7 @@ This script:
 
 Now, we are ready to launch the network:
 ```
-helm install ./hlf-kube --name hlf-kube -f samples/simple/network.yaml -f samples/simple/crypto-config.yaml
+helm install hlf-kube ./hlf-kube -f samples/simple/network.yaml -f samples/simple/crypto-config.yaml
 ```
 This chart creates all the above mentioned secrets, pods, services, etc. cross configures them 
 and launches the network in unpopulated state.
@@ -182,7 +182,7 @@ Now, lets launch a scaled up network backed by a Kafka cluster.
 First tear down everything:
 ```
 argo delete --all
-helm delete hlf-kube --purge
+helm uninstall hlf-kube
 ```
 Wait a bit until all pods are terminated:
 ```
@@ -194,7 +194,7 @@ Then create necessary stuff:
 ```
 Lets launch our scaled up Fabric network:
 ```
-helm install ./hlf-kube --name hlf-kube -f samples/scaled-kafka/network.yaml -f samples/scaled-kafka/crypto-config.yaml -f samples/scaled-kafka/values.yaml
+helm install hlf-kube ./hlf-kube -f samples/scaled-kafka/network.yaml -f samples/scaled-kafka/crypto-config.yaml -f samples/scaled-kafka/values.yaml
 ```
 Again lets wait for all pods are up and running:
 ```
@@ -231,7 +231,7 @@ useActualDomains: true
 First tear down everything:
 ```
 argo delete --all
-helm delete hlf-kube --purge
+helm uninstall hlf-kube
 ```
 Wait a bit until all pods are terminated:
 ```
@@ -243,7 +243,7 @@ Then create necessary stuff:
 ```
 Lets launch our Raft based Fabric network in _broken_ state:
 ```
-helm install ./hlf-kube --name hlf-kube -f samples/scaled-raft-tls/network.yaml -f samples/scaled-raft-tls/crypto-config.yaml 
+helm install hlf-kube ./hlf-kube -f samples/scaled-raft-tls/network.yaml -f samples/scaled-raft-tls/crypto-config.yaml 
 ```
 The pods will start but they cannot communicate to each other since domain names are unknown. You might also want to use the option `--set peer.launchPods=false --set orderer.launchPods=false` to make this process faster.
 
@@ -329,7 +329,7 @@ No other change is required. Any client of orderer, either application or Argo f
 Let's launch the Raft network without TLS. First tear down everything as usual:
 ```
 argo delete --all
-helm delete hlf-kube --purge
+helm uninstall hlf-kube
 ```
 Wait a bit until all pods are terminated, then create necessary stuff:
 ```
@@ -338,7 +338,7 @@ Wait a bit until all pods are terminated, then create necessary stuff:
 
 Luanch the Raft based Fabric network in broken state (only because of `useActualDomains=true`)
 ```
-helm install ./hlf-kube --name hlf-kube -f samples/scaled-raft-no-tls/network.yaml -f samples/scaled-raft-no-tls/crypto-config.yaml --set orderer.cluster.enabled=true --set peer.launchPods=false --set orderer.launchPods=false
+helm install hlf-kube ./hlf-kube -f samples/scaled-raft-no-tls/network.yaml -f samples/scaled-raft-no-tls/crypto-config.yaml --set orderer.cluster.enabled=true --set peer.launchPods=false --set orderer.launchPods=false
 ```
 
 Collect the host aliases:
@@ -415,9 +415,9 @@ You can run this sample either on three separate Kubernetes clusters or on three
 
 `Cluster-One` and `Cluster-Three` is exposed via `Ingress` and `Cluster-Two` is exposed via `LoadBalancer`. So, for cluster one and three we need to install Ingress controllers:
 ```
-helm install stable/nginx-ingress --name hlf-peer-ingress --namespace kube-system --set controller.service.type=LoadBalancer --set controller.ingressClass=hlf-peer --set controller.service.ports.https=7051 --set controller.service.enableHttp=false --set controller.extraArgs.enable-ssl-passthrough=''
+helm install hlf-peer-ingress stable/nginx-ingress --namespace kube-system --set controller.service.type=LoadBalancer --set controller.ingressClass=hlf-peer --set controller.service.ports.https=7051 --set controller.service.enableHttp=false --set controller.extraArgs.enable-ssl-passthrough=''
 
-helm install stable/nginx-ingress --name hlf-orderer-ingress  --namespace kube-system --set controller.service.type=LoadBalancer --set controller.ingressClass=hlf-orderer --set controller.service.ports.https=7050 --set controller.service.enableHttp=false --set controller.extraArgs.enable-ssl-passthrough=''
+helm install hlf-orderer-ingress stable/nginx-ingress --namespace kube-system --set controller.service.type=LoadBalancer --set controller.ingressClass=hlf-orderer --set controller.service.ports.https=7050 --set controller.service.enableHttp=false --set controller.extraArgs.enable-ssl-passthrough=''
 ```
 Notice we are installing one Ingress controller for peers and one for orderers. We are also enabling `ssl-passthrough` on these and using only the `https` port.
 
@@ -488,13 +488,13 @@ cp ../fabric-kube-two/hlf-kube/crypto-config/ordererOrganizations/pivt.nl/msp/tl
 Good to go, lets launch network parts:
 ```
 # run in one
-helm install ./hlf-kube --name hlf-kube -f samples/cross-cluster-raft-tls/cluster-one/network.yaml -f samples/cross-cluster-raft-tls/cluster-one/crypto-config.yaml --set peer.launchPods=false --set orderer.launchPods=false
+helm install hlf-kube ./hlf-kube -f samples/cross-cluster-raft-tls/cluster-one/network.yaml -f samples/cross-cluster-raft-tls/cluster-one/crypto-config.yaml --set peer.launchPods=false --set orderer.launchPods=false
 
 # run in two
-helm install ./hlf-kube --name hlf-kube-two --namespace two -f samples/cross-cluster-raft-tls/cluster-two/network.yaml -f samples/cross-cluster-raft-tls/cluster-two/crypto-config.yaml --set peer.launchPods=false --set orderer.launchPods=false --set peer.externalService.enabled=true --set orderer.externalService.enabled=true
+helm install hlf-kube-two ./hlf-kube --namespace two -f samples/cross-cluster-raft-tls/cluster-two/network.yaml -f samples/cross-cluster-raft-tls/cluster-two/crypto-config.yaml --set peer.launchPods=false --set orderer.launchPods=false --set peer.externalService.enabled=true --set orderer.externalService.enabled=true
 
 # run in three
-helm install ./hlf-kube --name hlf-kube-three --namespace three -f samples/cross-cluster-raft-tls/cluster-three/network.yaml -f samples/cross-cluster-raft-tls/cluster-three/crypto-config.yaml --set peer.launchPods=false --set orderer.launchPods=false 
+helm install hlf-kube-three ./hlf-kube --namespace three -f samples/cross-cluster-raft-tls/cluster-three/network.yaml -f samples/cross-cluster-raft-tls/cluster-three/crypto-config.yaml --set peer.launchPods=false --set orderer.launchPods=false 
 ```
 
 In `cluster-one` you will notice two external MSP secrets:
@@ -1156,7 +1156,7 @@ manually back it up. In particular, Kafka Orderer with some state cannot handle 
 First lets create a persistent network:
 ```
 ./init.sh ./samples/simple-persistent/ ./samples/chaincode/
-helm install --name hlf-kube -f samples/simple-persistent/network.yaml -f samples/simple-persistent/crypto-config.yaml -f samples/simple-persistent/values.yaml ./hlf-kube
+helm install hlf-kube ./hlf-kube -f samples/simple-persistent/network.yaml -f samples/simple-persistent/crypto-config.yaml -f samples/simple-persistent/values.yaml ./hlf-kube
 ```
 Again lets wait for all pods are up and running, this may take a bit longer due to provisioning of disks.
 ```
