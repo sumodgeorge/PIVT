@@ -142,7 +142,7 @@ spec:
 {{- range $i, $consortium := $consortiums }}
 {{- if or (not $.Values.flow.consortium.include) (has $consortium $.Values.flow.consortium.include) }}
     - - name: {{ $consortium }}
-        template: consortium--{{ $consortium }}
+        template: consortium--{{ $consortium | lower }}
 {{- end }} {{- /* if consortium included */ -}}
 {{- end }} {{- /* consortiums */ -}}
 {{- end }} {{- /* if consortium.enabled */ -}}{{""}}
@@ -168,12 +168,12 @@ spec:
 {{- if $.Values.flow.consortium.enabled }}
 {{- range $i, $consortium := $consortiums }}
 {{- if or (not $.Values.flow.consortium.include) (has $consortium $.Values.flow.consortium.include) }}
-  - name: consortium--{{ $consortium }}
+  - name: consortium--{{ $consortium | lower }}
     steps:
 {{- range $i, $org := (index $genesisProfile.Consortiums $consortium).Organizations }}
 {{- $orgName := $org.Name | trimSuffix "MSP" }}
     - - name: consortium-org--{{ $orgName }}
-        template: consortium-org--{{ $consortium }}--{{ $orgName }}
+        template: consortium-org--{{ $consortium | lower }}--{{ $orgName | lower }}
 {{- end }} {{- /* consortium.orgs */ -}}
 {{- end }} {{- /* if consortium included */ -}}
 {{- end }} {{- /* consortiums */ -}}
@@ -206,10 +206,10 @@ spec:
 {{- if or (not $.Values.flow.consortium.include) (has $consortium $.Values.flow.consortium.include) }}
 {{- range $i, $org := (index $genesisProfile.Consortiums $consortium).Organizations }}
 {{- $orgName := $org.Name | trimSuffix "MSP" }}
-  - name: consortium-org--{{ $consortium }}--{{ $orgName }}
+  - name: consortium-org--{{ $consortium | lower  }}--{{ $orgName | lower }}
     steps:
     - - name: check-org-in-consortium
-        template: check-org-in-consortium--{{ $consortium }}--{{ $orgName }}
+        template: check-org-in-consortium--{{ $consortium | lower }}--{{ $orgName | lower }}
     - - name: check-org-in-consortium-output
         template: print-output
         arguments:
@@ -217,7 +217,7 @@ spec:
           - name: result
             from: "{{ "{{" }}steps.check-org-in-consortium.outputs.artifacts.result{{ "}}" }}"
     - - name: add-org-to-consortium
-        template: add-org-to-consortium--{{ $consortium }}--{{ $orgName }}
+        template: add-org-to-consortium--{{ $consortium | lower }}--{{ $orgName | lower }}
         when: "!{{ "{{" }}steps.check-org-in-consortium-output.outputs.result{{ "}}" }}"
 {{- end }} {{- /* consortium.orgs */ -}}
 {{- end }} {{- /* if consortium included */ -}}
@@ -232,7 +232,7 @@ spec:
     steps:
 {{- range $orgName := concat $channel.orgs (default list $channel.externalOrgs) }}
     - - name: {{ $orgName }}
-        template: channel-org--{{ $channel.name }}--{{ $orgName }}
+        template: channel-org--{{ $channel.name }}--{{ $orgName | lower }}
 {{- end }} {{- /* channel.orgs */ -}}
 {{- end }} {{- /* if channel included */ -}}
 {{- end }} {{- /* channels */ -}}
@@ -243,10 +243,10 @@ spec:
 {{- range $i, $channel := $.Values.network.channels }}
 {{- if or (not $.Values.flow.channel.include) (has $channel.name $.Values.flow.channel.include) }}
 {{- range $orgName := concat $channel.orgs (default list $channel.externalOrgs) }}
-  - name: channel-org--{{ $channel.name }}--{{ $orgName }}
+  - name: channel-org--{{ $channel.name }}--{{ $orgName | lower }}
     steps:
     - - name: check-org-in-channel
-        template: check-org-in-channel--{{ $channel.name }}--{{ $orgName }}
+        template: check-org-in-channel--{{ $channel.name }}--{{ $orgName | lower }}
     - - name: check-org-in-channel-output
         template: print-output
         arguments:
@@ -267,18 +267,18 @@ spec:
 {{- if or (not $.Values.flow.consortium.include) (has $consortium $.Values.flow.consortium.include) }}
 {{- range $i, $org := (index $genesisProfile.Consortiums $consortium).Organizations }}
 {{- $orgName := $org.Name | trimSuffix "MSP" }}
-  - name: add-org-to-consortium--{{ $consortium }}--{{ $orgName }}
+  - name: add-org-to-consortium--{{ $consortium | lower }}--{{ $orgName | lower }}
     steps:
     - - name: create-system-channel-config-update
-        template: create-system-channel-config-update--{{ $consortium }}--{{ $orgName }}
+        template: create-system-channel-config-update--{{ $consortium | lower }}--{{ $orgName | lower }}
     - - name: sign-system-channel-config-update
-        template: sign-system-channel-config-update--{{ $consortium }}--{{ $orgName }}
+        template: sign-system-channel-config-update--{{ $consortium | lower }}--{{ $orgName | lower }}
         arguments:
           artifacts:
           - name: config_update_tx
             from: "{{ "{{" }}steps.create-system-channel-config-update.outputs.artifacts.config_update_tx{{ "}}" }}"
     - - name: send-system-channel-config-update
-        template: send-system-channel-config-update--{{ $consortium }}--{{ $orgName }}
+        template: send-system-channel-config-update--{{ $consortium | lower }}--{{ $orgName | lower }}
         arguments:
           artifacts:
           - name: signed_config_update_tx
@@ -296,9 +296,9 @@ spec:
   - name: add-org-to-channel--{{ $channel.name }}--{{ $orgName }}
     steps:
     - - name: create-channel-config-update
-        template: create-channel-config-update--{{ $channel.name }}--{{ $orgName }}
+        template: create-channel-config-update--{{ $channel.name }}--{{ $orgName | lower }}
     - - name: sign-channel-config-update
-        template: sign-channel-config-update--{{ $channel.name }}--{{ $orgName }}
+        template: sign-channel-config-update--{{ $channel.name }}--{{ $orgName | lower }}
         arguments:
           artifacts:
           - name: config_update_tx
@@ -320,15 +320,15 @@ spec:
 {{- if or (not $.Values.flow.consortium.include) (has $consortium $.Values.flow.consortium.include) }}
 {{- range $i, $org := (index $genesisProfile.Consortiums $consortium).Organizations }}
 {{- $orgName := $org.Name | trimSuffix "MSP" }}
-  - name: sign-system-channel-config-update--{{ $consortium }}--{{ $orgName }}
+  - name: sign-system-channel-config-update--{{ $consortium | lower }}--{{ $orgName | lower }}
     inputs:
       artifacts:
       - name: config_update_tx
     steps: 
 {{- $_ := set $vars "firstSignature" true }}
 {{- range $i, $ordererOrg := $.Values.OrdererOrgs }}
-    - - name: sign-system-channel-config-update--{{ $ordererOrg.Name }}
-        template: sign-system-channel-config-update--{{ $ordererOrg.Name }}
+    - - name: sign-system-channel-config-update--{{ $ordererOrg.Name | lower }}
+        template: sign-system-channel-config-update--{{ $ordererOrg.Name | lower }}
         arguments:
           artifacts:
           - name: config_update_tx
@@ -338,7 +338,7 @@ spec:
             from: "{{ "{{" }}steps.sign-system-channel-config-update--{{ $vars.previousOrgName }}.outputs.artifacts.signed_config_update_tx{{ "}}" }}"
           {{- end }}
 {{- $_ := set $vars "firstSignature" false }}          
-{{- $_ := set $vars "previousOrgName" $ordererOrg.Name }}
+{{- $_ := set $vars "previousOrgName" ($ordererOrg.Name | lower) }}
 {{- end }} {{- /* OrdererOrgs  */ -}}{{""}}
     outputs:
       artifacts:
@@ -354,15 +354,15 @@ spec:
 {{- range $i, $channel := $.Values.network.channels }}
 {{- if or (not $.Values.flow.channel.include) (has $channel.name $.Values.flow.channel.include) }}
 {{- range $orgName := concat $channel.orgs (default list $channel.externalOrgs) }}
-  - name: sign-channel-config-update--{{ $channel.name }}--{{ $orgName }}
+  - name: sign-channel-config-update--{{ $channel.name }}--{{ $orgName | lower }}
     inputs:
       artifacts:
       - name: config_update_tx
     steps: 
 {{- $_ := set $vars "firstSignature" true }}
 {{- range $signerOrgName := $channel.orgs }}
-    - - name: maybe-sign-channel-config-update--{{ $signerOrgName }}
-        template: maybe-sign-channel-config-update--{{ $channel.name }}--{{ $signerOrgName }}
+    - - name: maybe-sign-channel-config-update--{{ $signerOrgName | lower }}
+        template: maybe-sign-channel-config-update--{{ $channel.name }}--{{ $signerOrgName | lower }}
         arguments:
           artifacts:
           - name: config_update_tx
@@ -372,7 +372,7 @@ spec:
             from: "{{ "{{" }}steps.maybe-sign-channel-config-update--{{ $vars.previousOrgName }}.outputs.artifacts.signed_config_update_tx{{ "}}" }}"
           {{- end }}
 {{- $_ := set $vars "firstSignature" false }}          
-{{- $_ := set $vars "previousOrgName" $signerOrgName }}
+{{- $_ := set $vars "previousOrgName" ($signerOrgName | lower) }}
 {{- end }} {{- /* channel.orgs */ -}}{{""}}
     outputs:
       artifacts:
@@ -408,7 +408,7 @@ spec:
 {{- $ordererOrg := index $.Values.OrdererOrgs 0}}
 {{- $ordererHost := (index $ordererOrg.Specs 0).Hostname }}
 
-  - name: check-org-in-consortium--{{ $consortium }}--{{ $orgName }}
+  - name: check-org-in-consortium--{{ $consortium | lower }}--{{ $orgName | lower }}
     # consortium: {{ $consortium }}
     # org: {{ $orgName }}
     inputs:
@@ -491,7 +491,7 @@ spec:
 {{- range $i, $peerOrg := concat $.Values.PeerOrgs (default list $.Values.ExternalPeerOrgs) }}
 {{- if eq $orgName $peerOrg.Name }}
 
-  - name: create-system-channel-config-update--{{ $consortium }}--{{ $orgName }}
+  - name: create-system-channel-config-update--{{ $consortium | lower }}--{{ $orgName | lower }}
     # consortium: {{ $consortium }}
     # org: {{ $orgName }}
     outputs:
@@ -561,7 +561,7 @@ spec:
 {{- if $.Values.flow.consortium.enabled }}
 {{- range $i, $ordererOrg := $.Values.OrdererOrgs}}
 
-  - name: sign-system-channel-config-update--{{ $ordererOrg.Name }}
+  - name: sign-system-channel-config-update--{{ $ordererOrg.Name | lower }}
     inputs:
       artifacts:
       - name: config_update_tx
@@ -602,7 +602,7 @@ spec:
 {{- range $i, $peerOrg := concat $.Values.PeerOrgs (default list $.Values.ExternalPeerOrgs) }}
 {{- if eq $orgName $peerOrg.Name }}
 
-  - name: send-system-channel-config-update--{{ $consortium }}--{{ $orgName }}
+  - name: send-system-channel-config-update--{{ $consortium | lower }}--{{ $orgName | lower }}
     inputs:
       artifacts:
       - name: signed_config_update_tx
@@ -740,7 +740,7 @@ spec:
 {{- $ordererOrg := index $.Values.OrdererOrgs 0}}
 {{- $ordererHost := (index $ordererOrg.Specs 0).Hostname }}
 
-  - name: check-org-in-channel--{{ $channel.name }}--{{ $orgName }}
+  - name: check-org-in-channel--{{ $channel.name }}--{{ $orgName | lower }}
     # channel: {{ $channel }}
     # org: {{ $orgName }}
     inputs:
@@ -813,7 +813,7 @@ spec:
 {{- $ordererOrg := index $.Values.OrdererOrgs 0}}
 {{- $ordererHost := (index $ordererOrg.Specs 0).Hostname }}
 
-  - name: create-channel-config-update--{{ $channel.name }}--{{ $orgName }}
+  - name: create-channel-config-update--{{ $channel.name }}--{{ $orgName | lower }}
     outputs:
       artifacts:
       - name: config_update_tx
@@ -887,7 +887,7 @@ spec:
 {{- $ordererOrg := index $.Values.OrdererOrgs 0}}
 {{- $ordererHost := (index $ordererOrg.Specs 0).Hostname }}
 
-  - name: maybe-sign-channel-config-update--{{ $channel.name }}--{{ $orgName }}
+  - name: maybe-sign-channel-config-update--{{ $channel.name }}--{{ $orgName | lower }}
     inputs:
       artifacts:
       - name: config_update_tx
